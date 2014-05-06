@@ -10,6 +10,7 @@ describe('validator', function () {
                     table.increments('id').primary();
                     table.string('name').notNullable().unique();
                     table.integer('quantity');
+                    table.string('str');
                 });
             });
     });
@@ -18,6 +19,12 @@ describe('validator', function () {
         tableName: 'obj',
         validation: {
             'name': [
+                function (value, context) {
+                    if (!this.isNew()) {
+                        this.unset('name');
+                        return context.yield();
+                    }
+                },
                 { validator: 'notEmpty', message: 'name is required' },
                 { validator: 'matches', args: [/^[a-z0-9 ]+$/i], message: 'name format incorrect'},
                 function (value, context) {
@@ -34,6 +41,8 @@ describe('validator', function () {
         }
     });
 
+    var saved;
+
     it('should fail: empty object', function () {
         return Obj.forge({}).save()
             .then(function () {
@@ -49,8 +58,9 @@ describe('validator', function () {
     });
 
     it('should fail: name exists', function () {
-        return Obj.forge({ name: 'Name', quantity: 1 }).save()
-            .then(function () {
+        return Obj.forge({ name: 'Name', quantity: 1, str: 'secret' }).save()
+            .then(function (model) {
+                saved = model;
                 return Obj.forge({ name: 'Name', quantity: 1}).save()
                     .then(function () {
                         throw new Error('obj should not be saved');
@@ -60,6 +70,19 @@ describe('validator', function () {
                         expect(e.errors.name).to.have.length(1);
                         expect(e.errors.name[0]).to.equal('name already exists');
                     });
+            });
+    });
+
+    it('should have "this" set to model', function () {
+        return saved.save({ name: 'Another Name', quantity: 8 })
+            .then(function () {
+                return Obj.forge({id: saved.id}).fetch();
+            })
+            .then(function (model) {
+                saved = model;
+                expect(model.get('name')).equals('Name');
+                expect(model.get('str')).equals('secret');
+                expect(model.get('quantity')).equals(8);
             });
     });
 
