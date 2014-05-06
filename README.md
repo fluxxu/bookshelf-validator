@@ -3,6 +3,11 @@ bookshelf-validator
 
 Full feature validation plugin for Bookshelf.
 
+# Install
+```
+npm install bookshelf-validator
+```
+
 # Quick Example
 ```javascript
 var Validator = require('bookshelf-validator'),

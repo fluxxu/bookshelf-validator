@@ -24,10 +24,10 @@
   },
   "dependencies": {
     "bookshelf": "0.x.x",
-    "evalidator": "0.x.x",
-    "chai": "^1.9.1"
+    "evalidator": "0.x.x"
   },
   "devDependencies": {
-    "mysql": "^2.2.0"
+    "mysql": "^2.2.0",
+    "chai": "^1.9.1"
   }
 }
