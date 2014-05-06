@@ -1,5 +1,5 @@
 var Bookshelf = require('bookshelf'),
-    Validator = require('bookshelf-validator');
+    Validator = require('../');
 
 var config = {
         client: 'mysql',
@@ -10,8 +10,8 @@ var config = {
             database : 'bookshelf_validator_test'
         }
     },
-    context = Bookshelf.initialize(config);
+    DbContext = Bookshelf.initialize(config);
 
-context.plugin(Validator.plugin);
+DbContext.plugin(Validator.plugin);
 
-module.exports = context;
+module.exports = DbContext;
