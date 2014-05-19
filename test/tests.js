@@ -15,31 +15,33 @@ describe('validator', function () {
             });
     });
 
-    var Obj = DbContext.Model.extend({
-        tableName: 'obj',
-        validation: {
-            'name': [
-                function (value, context) {
-                    if (!this.isNew()) {
-                        this.unset('name');
-                        return context.yield();
+    var runCount = 0,
+        Obj = DbContext.Model.extend({
+            tableName: 'obj',
+            validation: {
+                'name': [
+                    function (value, context) {
+                        ++ runCount;
+                        if (!this.isNew()) {
+                            this.unset('name');
+                            return context.yield();
+                        }
+                    },
+                    { validator: 'notEmpty', message: 'name is required' },
+                    { validator: 'matches', args: [/^[a-z0-9 ]+$/i], message: 'name format incorrect'},
+                    function (value, context) {
+                        return DbContext.knex('obj').where('name', value).count('* AS count')
+                            .then(function (results) {
+                                if (results[0].count > 0)
+                                    context.addError('name already exists');
+                            });
                     }
-                },
-                { validator: 'notEmpty', message: 'name is required' },
-                { validator: 'matches', args: [/^[a-z0-9 ]+$/i], message: 'name format incorrect'},
-                function (value, context) {
-                    return DbContext.knex('obj').where('name', value).count('* AS count')
-                        .then(function (results) {
-                            if (results[0].count > 0)
-                                context.addError('name already exists');
-                        });
-                }
-            ],
-            'quantity': [
-                { validator: 'isInt', message: 'quantity must be integer' }
-            ]
-        }
-    });
+                ],
+                'quantity': [
+                    { validator: 'isInt', message: 'quantity must be integer' }
+                ]
+            }
+        });
 
     var saved;
 
@@ -61,7 +63,7 @@ describe('validator', function () {
         return Obj.forge({ name: 'Name', quantity: 1, str: 'secret' }).save()
             .then(function (model) {
                 saved = model;
-                return Obj.forge({ name: 'Name', quantity: 1}).save()
+                return Obj.forge({ name: 'Name', quantity: 1 }).save()
                     .then(function () {
                         throw new Error('obj should not be saved');
                     })
@@ -83,6 +85,22 @@ describe('validator', function () {
                 expect(model.get('name')).equals('Name');
                 expect(model.get('str')).equals('secret');
                 expect(model.get('quantity')).equals(8);
+            });
+    });
+
+    it('result cache', function () {
+        return Obj.forge({ name: 'Name 3', quantity: 1, str: 'secret' }).save()
+            .then(function (model) {
+                saved = model;
+                var count = runCount;
+                return saved.validate()
+                    .then(function (result) {
+                        expect(runCount).equals(count);
+                        return saved.save({ quantity: 222 })
+                            .then(function () {
+                                expect(runCount).equals(count + 1);
+                            });
+                    })
             });
     });
 
