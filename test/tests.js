@@ -16,6 +16,7 @@ describe('validator', function () {
     });
 
     var runCount = 0,
+        updateRuleExecuted = 0,
         Obj = DbContext.Model.extend({
             tableName: 'obj',
             validation: {
@@ -40,6 +41,14 @@ describe('validator', function () {
                 'quantity': [
                     { validator: 'isInt', message: 'quantity must be integer' }
                 ]
+            },
+
+            initialize: function () {
+                this.addRules({
+                    name: function () {
+                        ++ updateRuleExecuted;
+                    }
+                }, 'update');
             }
         });
 
@@ -101,6 +110,14 @@ describe('validator', function () {
                                 expect(runCount).equals(count + 1);
                             });
                     })
+            });
+    });
+
+    it('scenario', function () {
+        var count = updateRuleExecuted;
+        return saved.save('quantity', 666)
+            .then(function () {
+                expect(updateRuleExecuted).equals(count + 1);
             });
     });
 
